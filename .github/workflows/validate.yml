@@ -27,7 +27,7 @@ jobs:
     outputs:
       source_changed: ${{ steps.filter.outputs.source }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
         with:
           fetch-depth: 0
 
@@ -46,21 +46,42 @@ jobs:
             || echo "source=false" >> "$GITHUB_OUTPUT"
 
   # ── Lint ───────────────────────────────────────────────────────────────────
-  # Customise this job for your project's language/toolchain.
-  # Examples:
-  #   Shell:      shellcheck **/*.sh
-  #   Go:         go vet ./... && golangci-lint run
-  #   Python:     ruff check . && mypy .
-  #   Node:       npm run lint
   lint:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+        with:
+          fetch-depth: 0
 
-      - name: Lint
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: 'stable'
+
+      - name: Install pinned proto tools
+        run: make tools
+
+      - name: Buf lint
+        run: buf lint
+
+      - name: Breaking change check (PRs only)
+        if: github.event_name == 'pull_request'
         run: |
-          echo "TODO: add lint steps for this project"
+          # Skip on the PR that first introduces buf.yaml: no baseline exists.
+          if git cat-file -e "origin/${{ github.base_ref }}:buf.yaml" 2>/dev/null; then
+            buf breaking --against ".git#branch=origin/${{ github.base_ref }}"
+          else
+            echo "No buf.yaml on base branch yet; skipping breaking check."
+          fi
+
+      - name: Verify committed codegen is current
+        run: |
+          buf generate
+          cd gen/go && go mod tidy && go build ./... && cd ../..
+          git diff --exit-code || {
+            echo "gen/ is stale. Run 'make generate' and commit the result."
+            exit 1
+          }
 
   # ── Commit Lint (PRs only) ──────────────────────────────────────────────────
   commit-lint:
@@ -68,7 +89,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
         with:
           fetch-depth: 0
 
