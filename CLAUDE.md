@@ -6,7 +6,25 @@ This file is read by Claude Code at the start of every session in this repo.
 
 ## About This Repo
 
-<!-- TODO: describe what this project does -->
+Shared protobuf contracts for the Command and Control Center (CCC)
+homelab platform. Proto definitions live under `proto/`, managed with
+buf (v2 config). Generated Go code is committed under `gen/go/` as a
+standalone Go module (`github.com/amcheste/ccc-protos/gen/go`) so
+consuming services just `go get` a tagged release.
+
+Rules that matter here:
+
+- Never edit anything under `gen/` by hand. Change the proto, then run
+  `make generate` and commit the result. CI fails PRs with stale codegen.
+- `buf breaking` gates every PR against the base branch. A breaking
+  change to a published package means a new version directory (`v2/`),
+  not an in-place edit of `v1/`.
+- Tool versions (buf, protoc-gen-go, protoc-gen-go-grpc) are pinned in
+  the Makefile so local and CI output stay byte-identical. Bump them
+  there, regenerate, and commit together.
+- Proto style follows buf STANDARD lint: package per service per major
+  version (`ccc.<service>.v1`), UNSPECIFIED zero enum values, unique
+  Request/Response message per RPC.
 
 ---
 

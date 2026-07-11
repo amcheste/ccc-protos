@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package ccc.account.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// AccountService is the internal identity surface for CCC microservices.
+// It is consumer-shaped: token checks and user lookups only. External
+// clients (the web frontend) use the account service's REST API instead.
+service AccountService {
+  // ValidateToken verifies signature, expiry, revocation, and user status.
+  // Services that only need signature and expiry checks should verify
+  // locally against the account service's JWKS endpoint and skip this RPC.
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+
+  // GetUser returns a single user by id.
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+
+  // ListUsers returns all users, paginated.
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+
+  // GetUserRoles returns the current roles for a user. Prefer the roles
+  // claim in a validated access token; use this only when a fresh answer
+  // matters more than a network hop.
+  rpc GetUserRoles(GetUserRolesRequest) returns (GetUserRolesResponse);
+}
+
+// Role is the coarse household role encoded into JWT claims. Fine-grained
+// permissions are out of scope for the account service by design.
+enum Role {
+  ROLE_UNSPECIFIED = 0;
+  ROLE_ADMIN = 1;
+  ROLE_MEMBER = 2;
+}
+
+enum UserStatus {
+  USER_STATUS_UNSPECIFIED = 0;
+  USER_STATUS_ACTIVE = 1;
+  USER_STATUS_DISABLED = 2;
+}
+
+message User {
+  string id = 1;
+  string username = 2;
+  string display_name = 3;
+  Role role = 4;
+  UserStatus status = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message ValidateTokenRequest {
+  string access_token = 1;
+}
+
+message ValidateTokenResponse {
+  bool valid = 1;
+  string user_id = 2;
+  repeated Role roles = 3;
+  google.protobuf.Timestamp expires_at = 4;
+}
+
+message GetUserRequest {
+  string id = 1;
+}
+
+message GetUserResponse {
+  User user = 1;
+}
+
+message ListUsersRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+
+message ListUsersResponse {
+  repeated User users = 1;
+  string next_page_token = 2;
+}
+
+message GetUserRolesRequest {
+  string user_id = 1;
+}
+
+message GetUserRolesResponse {
+  repeated Role roles = 1;
+}

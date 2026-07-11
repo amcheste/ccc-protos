@@ -9,3 +9,11 @@ ci:
 docs:
   - changed-files:
     - any-glob-to-any-file: ['*.md', 'docs/**']
+
+proto:
+  - changed-files:
+    - any-glob-to-any-file: ['proto/**', 'buf.yaml', 'buf.gen.yaml']
+
+generated:
+  - changed-files:
+    - any-glob-to-any-file: ['gen/**']

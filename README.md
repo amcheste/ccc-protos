@@ -1,56 +1,60 @@
-<!--
-Project banner. Spec:
-  https://github.com/amcheste/alanchester-brand/blob/main/docs/banner-spec.md
-
-To enable: generate a banner via Claude Design (paste the
-design-session-brief plus the banner-spec request prompt), land
-the generated SVG and PNG exports in `assets/`, then uncomment the
-<img> block below by removing this whole HTML comment block and
-restoring the <p> tag.
-
-If this repo doesn't need a banner, delete this placeholder
-entirely.
-
-<p align="center">
-  <img src="assets/banner.svg" alt="<project> banner" width="100%">
-</p>
--->
-
 <div align="center">
 
-# repo-name
+# ccc-protos
 
-**One-line description of what this project does.**
+**Shared protobuf contracts for the Command and Control Center microservices.**
 
-[![Validate](https://github.com/amcheste/repo-name/actions/workflows/validate.yml/badge.svg)](https://github.com/amcheste/repo-name/actions/workflows/validate.yml)
-[![Version](https://img.shields.io/github/v/tag/amcheste/repo-name?label=version&sort=semver&color=0B0B0C)](https://github.com/amcheste/repo-name/releases)
+[![Validate](https://github.com/amcheste/ccc-protos/actions/workflows/validate.yml/badge.svg)](https://github.com/amcheste/ccc-protos/actions/workflows/validate.yml)
+[![Version](https://img.shields.io/github/v/tag/amcheste/ccc-protos?label=version&sort=semver&color=0B0B0C)](https://github.com/amcheste/ccc-protos/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-1F4D3A.svg)](LICENSE)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/amcheste/repo-name/badge)](https://scorecard.dev/viewer/?uri=github.com/amcheste/repo-name)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/amcheste/ccc-protos/badge)](https://scorecard.dev/viewer/?uri=github.com/amcheste/ccc-protos)
 
 </div>
 
 ---
 
-<!--
-This scaffold is brand-aligned with `@amcheste/brand`
-(https://github.com/amcheste/alanchester-brand). Badge colors,
-voice, and the accent rule already match the brand by default:
+This repo is the single source of truth for gRPC contracts between CCC
+services. Proto definitions live under `proto/`, managed with
+[buf](https://buf.build). Generated Go code is committed under `gen/go/`
+as its own Go module, so consumers never need protoc or buf installed.
 
-  - Hunter Green `#1F4D3A` for the license badge
-  - Ink `#0B0B0C` for the version badge
-  - Hunter green is reserved for data, pivots, and the δ; don't
-    decorate with it
-  - No em dashes in prose, calibrated hedges, lowercase eyebrows,
-    numerical specificity
+## Layout
 
-When filling in this README and other docs, follow the brand voice
-rules:
-https://github.com/amcheste/alanchester-brand/blob/main/docs/voice.md
+```
+proto/ccc/<service>/v1/   proto definitions, one package per service per major version
+gen/go/                   committed Go codegen, module github.com/amcheste/ccc-protos/gen/go
+buf.yaml                  module config: STANDARD lint, FILE-level breaking checks
+buf.gen.yaml              codegen config: local protoc-gen-go + protoc-gen-go-grpc
+```
 
-For deeper integration (palette adoption, mark embedding, full
-theming sweep), paste the theming prompt into a Claude Code session
-here:
-https://github.com/amcheste/alanchester-brand/blob/main/docs/theming-prompt.md
--->
+## Consuming from Go
 
-<!-- TODO: fill in the rest of the README -->
+```sh
+go get github.com/amcheste/ccc-protos/gen/go@latest
+```
+
+```go
+import accountv1 "github.com/amcheste/ccc-protos/gen/go/ccc/account/v1"
+```
+
+Pin to a tagged release in service go.mod files rather than tracking
+`develop`.
+
+## Making changes
+
+1. Branch from `develop`, edit protos under `proto/`.
+2. `make tools` once, then `make generate` to refresh `gen/go/`.
+3. `make lint` and `make breaking` must pass locally.
+4. Open a PR. CI re-runs lint, checks for breaking changes against the
+   base branch, and fails if committed codegen is stale.
+
+Breaking changes to a published package require a new version directory
+(`v2/`) rather than editing `v1/` in place. The `buf breaking` gate in CI
+enforces this.
+
+## Versioning
+
+Releases are semver tags (`v0.x.y`) cut from `main` via the standard
+release flow. A minor bump means added messages, fields, or RPCs. Package
+version directories (`v1`, `v2`) track wire compatibility; repo tags track
+the Go module.
